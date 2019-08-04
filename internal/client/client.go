@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ztstewart/subwayclock/internal/client/transit_realtime"
+	"github.com/ztstewart/subwayclock/internal/models"
 )
 
 // The MTA considers one physical station to be multiple stop IDs depending
@@ -23,34 +24,6 @@ const (
 const _avgNumStopsPerLine = 30
 
 const _baseURL = "http://datamine.mta.info/mta_esi.php?key="
-
-// StationUpdate  records a scheduled (or realtime) arrival and departure for
-// a trip at a particular station.
-type StationUpdate struct {
-	TripID    string
-	Arrival   time.Time
-	Departure time.Time
-}
-
-// A StationStatus records all scheduled arrivals and departures for a given
-// stop. Stops on the same line, but in different directions, will be grouped
-// into a given StationStatus struct.
-type StationStatus struct {
-	StopID          string
-	StopIDToUpdates map[string][]StationUpdate // multiple directions will be separate keys
-}
-
-// An Alert is a type of service disruption, delay, etc.
-type Alert struct {
-	Effect string
-	Header string
-}
-
-// FeedUpdate represents the status at a given moment.
-type FeedUpdate struct {
-	Alerts        []Alert
-	StationStatus map[string]StationStatus
-}
 
 // Config defines how to configure the subway client.
 type Config struct {
@@ -77,28 +50,28 @@ func NewNYCTA(cfg *Config) (*NYCTA, error) {
 
 // GetFeed retrieves the current feed information.
 // Currently for testing purposes it returns a JSON string.
-func (n *NYCTA) GetFeed() (FeedUpdate, error) {
+func (n *NYCTA) GetFeed() (models.FeedUpdate, error) {
 	resp, err := http.Get(n.url)
 	if err != nil {
-		return FeedUpdate{}, err
+		return models.FeedUpdate{}, err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return FeedUpdate{}, err
+		return models.FeedUpdate{}, err
 	}
 
 	feedMessage := &transit_realtime.FeedMessage{}
 	if err := proto.Unmarshal(body, feedMessage); err != nil {
-		return FeedUpdate{}, err
+		return models.FeedUpdate{}, err
 	}
 
 	return n.parseStatus(feedMessage)
 }
 
-func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpdate, error) {
-	stopToTimestamp := make(map[string][]StationUpdate, _avgNumStopsPerLine)
+func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (models.FeedUpdate, error) {
+	stopToTimestamp := make(map[string][]models.StationUpdate, _avgNumStopsPerLine)
 	var alerts []*transit_realtime.Alert
 
 	for _, e := range feedMessage.Entity {
@@ -116,7 +89,7 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 			}
 
 			stopID := *stu.StopId
-			stopToTimestamp[stopID] = append(stopToTimestamp[stopID], StationUpdate{
+			stopToTimestamp[stopID] = append(stopToTimestamp[stopID], models.StationUpdate{
 				TripID:    *e.TripUpdate.Trip.TripId,
 				Arrival:   time.Unix(*stu.Arrival.Time, 0),
 				Departure: time.Unix(*stu.Departure.Time, 0),
@@ -130,9 +103,9 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 		})
 	}
 
-	update := FeedUpdate{
-		StationStatus: make(map[string]StationStatus, len(stopToTimestamp)),
-		Alerts:        make([]Alert, len(alerts)),
+	update := models.FeedUpdate{
+		StationStatus: make(map[string]models.StationStatus, len(stopToTimestamp)),
+		Alerts:        make([]models.Alert, len(alerts)),
 	}
 
 	for i, alert := range alerts {
@@ -144,7 +117,7 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 			}
 		}
 
-		update.Alerts[i] = Alert{
+		update.Alerts[i] = models.Alert{
 			Effect: alert.GetEffect().String(),
 			Header: header,
 		}
@@ -160,7 +133,7 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 			stop.StopID = stopID
 
 			if stop.StopIDToUpdates == nil {
-				stop.StopIDToUpdates = make(map[string][]StationUpdate, 2)
+				stop.StopIDToUpdates = make(map[string][]models.StationUpdate, 2)
 			}
 			stop.StopIDToUpdates[k] = v
 
@@ -175,7 +148,7 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 		stop.StopID = stopID
 
 		if stop.StopIDToUpdates == nil {
-			stop.StopIDToUpdates = make(map[string][]StationUpdate, 2)
+			stop.StopIDToUpdates = make(map[string][]models.StationUpdate, 2)
 		}
 		stop.StopIDToUpdates[k] = v
 
