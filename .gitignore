@@ -14,6 +14,9 @@
 # Subwayclock binary
 subwayclock
 
+# Test output file
+test.png
+
 # Common editor workspace directories
 .vs
 .idea
