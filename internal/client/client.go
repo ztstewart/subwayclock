@@ -42,7 +42,8 @@ type StationStatus struct {
 
 // An Alert is a type of service disruption, delay, etc.
 type Alert struct {
-	Description string
+	Effect string
+	Header string
 }
 
 // FeedUpdate represents the status at a given moment.
@@ -131,7 +132,24 @@ func (n *NYCTA) parseStatus(feedMessage *transit_realtime.FeedMessage) (FeedUpda
 
 	update := FeedUpdate{
 		StationStatus: make(map[string]StationStatus, len(stopToTimestamp)),
+		Alerts:        make([]Alert, len(alerts)),
 	}
+
+	for i, alert := range alerts {
+		var header string
+		for _, trans := range alert.GetHeaderText().GetTranslation() {
+			if trans.Text != nil {
+				header = *trans.Text
+				break
+			}
+		}
+
+		update.Alerts[i] = Alert{
+			Effect: alert.GetEffect().String(),
+			Header: header,
+		}
+	}
+
 	for k, v := range stopToTimestamp {
 		last := k[len(k)-1]
 
