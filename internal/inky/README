@@ -1,0 +1,5 @@
+This is a copy from: periph.io/x/periph/experimental/devices/inky
+
+This is here because it seems `go mod` cannot load it.
+
+TODO: Delete this as soon as I figure out why this is the case.
