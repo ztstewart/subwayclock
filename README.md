@@ -4,7 +4,7 @@ Subwayclock is a simple program used to power a Raspberry PI-based countdown
 clock. The display is similar to the countdown clocks that can be seen on the
 New York Subway platform.
 
-![Image of the subway clock on a Raspberry Pi Zero](image.jpeg)
+![Image of the subway clock on a Raspberry Pi Zero](image.jpg)
 
 # Requirements
 
