@@ -1,0 +1,14 @@
+[Unit]
+Description=subwayclock
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=30
+User=<your user here, e.g. pi>
+ExecStart=<path to the subwayclock binary, e.g. /home/pi/subwayclock> 
+
+[Install]
+WantedBy=multi-user.target
