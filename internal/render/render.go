@@ -37,6 +37,27 @@ const (
 	_gapBetweenStopAndUpdates = 20 // Space between the top and bottom rows and arrivals.
 )
 
+var (
+	_black = color.RGBA{
+		R: 0,
+		G: 0,
+		B: 0,
+		A: 255,
+	}
+	_red = color.RGBA{
+		R: 255,
+		G: 0,
+		B: 0,
+		A: 255,
+	}
+	_white = color.RGBA{
+		R: 255,
+		G: 255,
+		B: 255,
+		A: 255,
+	}
+)
+
 // SubwayClock renders an image suitable for display as a subway clock.
 // The output will be an image, 212 x 104, that has two sections: one for the
 // stop in the "southbound" direction on the top section and one for the
@@ -55,8 +76,8 @@ func SubwayClock(update models.FeedUpdate, stopID string, northLabel string, sou
 		Max: image.Point{X: _maxX, Y: _maxY},
 	})
 
-	addLabel(img, _leftMargin, _topRow, southLabel)
-	addLabel(img, _leftMargin, _bottomRow, northLabel)
+	addLabel(img, _leftMargin, _topRow, southLabel, _red)
+	addLabel(img, _leftMargin, _bottomRow, northLabel, _red)
 
 	status, ok := update.StationStatus[stopID]
 	if !ok { // No stop information, don't render anything else.
@@ -73,6 +94,10 @@ func SubwayClock(update models.FeedUpdate, stopID string, northLabel string, sou
 		renderArrivals(updates, img, _leftMargin+_gapBetweenUpdates, _bottomRow+_gapBetweenStopAndUpdates, now)
 	}
 
+	if len(update.Alerts) != 0 {
+		addLabel(img, 0, 13, "SERVICE ALERT - CHECK MTA.INFO", _red)
+	}
+
 	return img
 }
 
@@ -83,7 +108,7 @@ func renderArrivals(updates []models.StationUpdate, img *image.RGBA, x int, y in
 			continue
 		}
 
-		addLabel(img, x, y, strconv.Itoa(int(minutes)))
+		addLabel(img, x, y, strconv.Itoa(int(minutes)), _white)
 		x += _gapBetweenUpdates
 		if x > _rightMargin {
 			break
@@ -92,8 +117,7 @@ func renderArrivals(updates []models.StationUpdate, img *image.RGBA, x int, y in
 }
 
 // addLabel adds a label to an image.
-func addLabel(img *image.RGBA, x, y int, label string) {
-	col := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+func addLabel(img *image.RGBA, x, y int, label string, col color.RGBA) {
 	point := fixed.Point26_6{
 		X: fixed.Int26_6(x * 64),
 		Y: fixed.Int26_6(y * 64),
